@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a101e">
+<meta name="description" content="5種類のランダム問題を15問。正答率・回答速度・迷い方から思考スタイルとゲーム内IQ風指数を可視化するブラウザゲーム。">
+<title>MIND SPRINT — 思考力チャレンジ</title>
+<link rel="stylesheet" href="../theme.css">
+<style>
+:root{--mint:#6cf3d1;--blue:#92baff;--pink:#fa98ce;--yellow:#f8d888}
+body{background:radial-gradient(ellipse at 90% 0%,#233656 0,transparent 44%),radial-gradient(ellipse at 0% 100%,#153c41 0,transparent 42%),#0a101e}
+.shell{max-width:770px;margin:auto}
+.page-title{font-size:clamp(37px,9vw,66px);font-weight:800;letter-spacing:-.055em;line-height:1.1;margin:8px 0 14px}
+.em{color:var(--mint)}
+.info{border:1px solid #354761;border-radius:17px;background:#172438;padding:17px 19px;color:#c7d9f0;font-size:13px;line-height:1.75}
+.rowchips{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0 24px}
+.chip{font-size:12px}
+.feature{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:20px 0}
+.feature div{padding:15px;border-radius:12px;border:1px solid #31435c;background:#0c1729}
+.feature b{display:block;font-size:15px;margin-bottom:4px}
+.feature small{color:#adbfda;font-size:11px;line-height:1.6}
+.start{padding:16px 23px;min-width:190px;font-size:16px}
+.fine{color:#91a5c2;font-size:11px;line-height:1.65;margin:17px 0}
+#play[hidden],#startview[hidden],#resultview[hidden]{display:none!important}
+.timeline{height:6px;background:#23374e;border-radius:20px;overflow:hidden;margin:16px 0 19px}
+.timeline span{display:block;height:100%;background:linear-gradient(90deg,#57caba,#91e7fa);width:0;transition:width .2s}
+.play-meta{display:flex;justify-content:space-between;align-items:center;gap:9px;color:#a6bbd7;font-size:12px}
+.play-meta b{color:var(--text)}
+.timer{font-size:23px;font-weight:800;letter-spacing:-.04em;color:var(--mint);font-variant-numeric:tabular-nums}
+.timer.urgent{color:#ff8eaa}
+.timetrack{height:7px;border-radius:15px;background:#2b3d55;overflow:hidden;margin:7px 0 27px}
+.timetrack span{display:block;width:100%;height:100%;background:var(--mint);transition:width .08s linear}
+.timetrack span.urgent{background:#ff8eaa}
+.qkind{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.15em;border:1px solid #48607e;background:#253855;border-radius:100px;padding:7px 12px;color:#9adcf2}
+.prompt{font-size:clamp(19px,5vw,26px);font-weight:800;line-height:1.6;margin:18px 0 13px}
+.instruction{color:#aabbd4;font-size:13px;line-height:1.7}
+.stimulus{display:flex;justify-content:center;align-items:center;min-height:100px;background:#0c1728;border:1px solid #34455f;border-radius:16px;padding:18px 12px;margin:19px 0;font-size:clamp(23px,6.3vw,38px);font-weight:800;letter-spacing:.025em;gap:8px;flex-wrap:wrap;text-align:center}
+.stimulus .emphasis{color:var(--mint)}
+.stimulus small{display:block;color:#91a8c5;font-size:11px;letter-spacing:.05em;font-weight:600;line-height:2}
+.options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:19px}
+.option{border:1px solid #41516b;border-radius:14px;background:#21334b;color:#fff;min-height:69px;padding:13px 9px;font-weight:800;font-size:clamp(19px,5vw,27px);line-height:1.4}
+.option .shortcut{display:block;color:#95aecb;font-size:9px;font-weight:600;margin-top:2px}
+.option.selected,.search-cell.selected{border:2px solid var(--mint)!important;background:#23505a!important;box-shadow:0 0 0 2px #5bebcc33}
+.option:disabled{cursor:default;opacity:.45}
+.searchgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;width:min(100%,420px);margin:20px auto}
+.search-cell{aspect-ratio:1;min-height:43px;border-radius:11px;border:1px solid #40536e;background:#182b42;color:#ebf6ff;font-size:clamp(20px,6.4vw,32px);font-weight:800;line-height:1;display:grid;place-items:center}
+.search-cell:disabled{opacity:.5}
+.playactions{display:flex;align-items:center;justify-content:space-between;gap:13px;margin-top:22px;flex-wrap:wrap}
+.playactions .btn{min-width:145px}
+.mini-state{color:#a2b6d0;font-size:12px;max-width:350px;line-height:1.6}
+.feedback{border:1px solid #3b5d65;background:#112f36;color:#b9ffe9;padding:16px;border-radius:13px;margin-top:15px;font-size:14px;line-height:1.8}
+.feedback.no{border-color:#6d3f55;background:#332031;color:#ffc4d8}
+.feedback strong{font-size:18px;display:block}
+.results-head{text-align:center;padding:24px 0 14px}
+.results-head .eyebrow{margin:0 0 8px}
+.big-score{font-size:clamp(65px,18vw,105px);font-weight:800;letter-spacing:-.075em;line-height:1.13;color:#81f7d9}
+.big-score small{font-size:17px;letter-spacing:.03em;color:#bed2e5;font-weight:600}
+.score-label{color:#b7cbe0;font-size:12px}
+.profile{font-weight:800;font-size:23px;margin:12px 0 4px}
+.profile-copy{max-width:590px;margin:6px auto 21px;color:#b4c9e0;line-height:1.7;font-size:13px}
+.breakdown{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:15px 0 23px}
+.breakdown div{padding:14px 9px;text-align:center;background:#0a1727;border:1px solid #344760;border-radius:12px}
+.breakdown b{display:block;font-size:clamp(19px,5vw,27px);font-weight:800}
+.breakdown small{display:block;font-size:10px;color:#aabdd5;margin-top:4px}
+.chart{background:#0d192b;border:1px solid #2b405c;border-radius:15px;padding:18px 15px;margin-top:12px}
+.chart h3{font-size:15px;margin:0 0 18px}
+.barrow{display:grid;grid-template-columns:72px 1fr 42px;gap:8px;align-items:center;margin-bottom:14px;font-size:12px}
+.barbg{height:9px;border-radius:20px;background:#243951;overflow:hidden}
+.barfill{height:100%;border-radius:20px;background:#6cf3d1}
+.barname{color:#c4d4ea}
+.barpct{text-align:right;color:#d1e4f4;font-variant-numeric:tabular-nums}
+.metric-note{font-size:12px;line-height:1.9;color:#b5c8e1;margin:13px 0}
+.results-action{text-align:center;margin:25px 0}
+@media(max-width:480px){.feature{grid-template-columns:1fr 1fr}.feature div{padding:12px}.gameboard{padding:16px}.options{gap:8px}.option{min-height:64px}.stimulus{min-height:82px}.barrow{grid-template-columns:65px 1fr 35px}.searchgrid{gap:6px}}
+</style>
+</head>
+<body>
+<div class="wrap shell">
+  <header class="top"><a href="../" class="back">← POCKET ARCADE</a><span class="tag">MIND LAB / 01</span></header>
+  <section id="startview">
+    <div class="intro">
+      <p class="eyebrow">FIFTEEN CHALLENGES. ONE MIND.</p>
+      <h1 class="page-title">MIND<br><span class="em">SPRINT.</span></h1>
+      <p>ランダムな15問を解いて、思考のクセを可視化。<br>正答率・解答速度・迷い方をもとに、あなたの「IQ風指数」とプレイスタイルを分析します。</p>
+    </div>
+    <div class="rowchips"><span class="chip">全15問</span><span class="chip">5ジャンル × 3問</span><span class="chip">各問15〜30秒</span><span class="chip">約5分</span></div>
+    <div class="feature">
+      <div><b>▤ 数列</b><small>次の数字を推論する</small></div>
+      <div><b>➤ 空間認識</b><small>矢印の変化を読む</small></div>
+      <div><b>◈ 記憶</b><small>短時間で順番を覚える</small></div>
+      <div><b>⇄ 論理</b><small>大小関係を整理する</small></div>
+      <div><b>✳ 視覚探索</b><small>違う記号を素早く見つける</small></div>
+      <div><b>✦ 行動分析</b><small>回答時間・変更・時間切れを計測</small></div>
+    </div>
+    <div class="info"><strong>遊び方</strong><br>選択肢をタップしてから「回答する」で確定します。確定まで何度でも選び直せますが、制限時間は進みます。問題はプレイごとに自動生成されます。</div>
+    <div style="margin-top:22px"><button id="start" class="btn primary start" type="button">診断をスタート ↗</button></div>
+    <p class="fine">※これはゲームです。表示する「IQ風指数」は独自の娯楽用スコアで、標準化されたIQ検査・医学的／心理学的な測定ではありません。計算方法は結果画面に表示します。</p>
+  </section>
+
+  <main id="play" class="gamehead" hidden>
+    <div class="play-meta"><span id="counter">QUESTION 01 / 15</span><b id="phase">PHASE 01 / 03</b></div>
+    <div class="timeline"><span id="progress"></span></div>
+    <div class="gameboard">
+      <div class="play-meta"><span class="qkind" id="kind">LOGIC</span><div><span style="font-size:10px;color:#a4b8d2">残り</span> <span class="timer" id="clock">25.0s</span></div></div>
+      <div class="timetrack"><span id="timerbar"></span></div>
+      <h2 class="prompt" id="question">問題</h2>
+      <p class="instruction" id="instruction"></p>
+      <div id="stimulus" class="stimulus" aria-live="polite"></div>
+      <div id="choicearea"></div>
+      <div class="playactions">
+        <div class="mini-state" id="choiceinfo" role="status" aria-live="polite">回答を選んでください。</div>
+        <button id="confirm" class="btn primary" type="button" disabled>回答する ↗</button>
+        <button id="continue" class="btn primary" type="button" hidden>次の問題 →</button>
+      </div>
+      <div id="feedback" class="feedback" aria-live="polite" hidden></div>
+    </div>
+    <p class="fine">1〜4キーで選択 / Enterで確定。時間切れになると自動的に次の問題に進みます。</p>
+  </main>
+  <section id="resultview" hidden>
+    <div class="results-head">
+      <p class="eyebrow">YOUR MIND PROFILE IS READY</p>
+      <div class="score-label">IQ風指数 <span style="color:#f8d888">（ゲーム内指標）</span></div>
+      <div class="big-score" id="iq">—</div>
+      <div class="profile" id="profile">分析中</div>
+      <p class="profile-copy" id="profilecopy"></p>
+    </div>
+    <div class="gameboard">
+      <div class="breakdown">
+        <div><b id="accuracy">—</b><small>正答率</small></div>
+        <div><b id="avgtime">—</b><small>平均回答時間</small></div>
+        <div><b id="resultscore">—</b><small>総合得点 / 100</small></div>
+      </div>
+      <div class="chart"><h3>ジャンル別の正答率</h3><div id="bars"></div></div>
+      <div class="chart"><h3>迷い方・時間の使い方</h3><div id="behavior" class="metric-note"></div></div>
+      <p class="fine">算出方法：各問、正解なら76点＋回答の速さに応じて最大24点。選び直し・選択後の迷いに最大8点の減点を適用。不正解・時間切れは0点。総合得点は15問の平均、IQ風指数は「65＋総合得点×0.78」を四捨五入して算出します。<strong>統計的なIQ推定ではありません。</strong></p>
+    </div>
+    <div class="results-action"><button id="retry" class="btn primary start" type="button">もう一度チャレンジ ↺</button></div>
+  </section>
+  <footer class="footer">MIND SPRINT · No sign-in. No server-side tracking. Results are calculated locally in your browser.</footer>
+</div>
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id);};
+var types=["number","rotate","memory","logic","search"];
+var names={number:"数列推理",rotate:"空間認識",memory:"短期記憶",logic:"論理推論",search:"視覚探索"};
+var codes={number:"01 / NUMBER",rotate:"02 / ROTATION",memory:"03 / MEMORY",logic:"04 / LOGIC",search:"05 / SEARCH"};
+var questions=[],at=0,records=[],q=null,selected=null,firstSelect=null,switches=0,startAt=0,phase="idle",tickId=null,transitionId=null,lastChoice=null;
+var shuffle=function(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),v=a[i];a[i]=a[j];a[j]=v;}return a;};
+var rnd=function(min,max){return min+Math.floor(Math.random()*(max-min+1));};
+var waitMs=function(){return performance.now()-startAt;};
+function choices(correct,others){
+  var seen=new Set([String(correct)]),arr=[String(correct)];
+  for(var k=0;k<others.length;k++){var s=String(others[k]);if(!seen.has(s)){seen.add(s);arr.push(s);}if(arr.length===4)break;}
+  var extra=1;while(arr.length<4&&extra<999){var candidate=String(Number(correct)+extra*2+1);if(!seen.has(candidate)){seen.add(candidate);arr.push(candidate);}extra++;}
+  return shuffle(arr).map(function(v){return {label:v,val:v};});
+}
+function qNumber(d){
+  var start=rnd(2,17),seq=[start],answer,step,a,b,i;
+  if(d===1){step=rnd(2,8);for(i=1;i<5;i++)seq.push(start+i*step);answer=start+5*step;}
+  else if(d===2){a=rnd(2,6);b=rnd(7,12);for(i=1;i<5;i++)seq.push(seq[i-1]+(i%2?a:b));answer=seq[4]+a;}
+  else{a=rnd(2,6);b=rnd(2,5);for(i=1;i<5;i++)seq.push(seq[i-1]+a+(i-1)*b);answer=seq[4]+a+4*b;}
+  var offsets=shuffle([-14,-10,-7,-4,-3,-2,2,3,4,6,8,11,15]);
+  var others=offsets.map(function(n){return answer+n;}).filter(function(v){return v>0;});
+  return {type:"number",d:d,limit:30,prompt:"「？」に入る数字は？",info:"数字の増え方に注目。",stim:seq.join("  ·  ")+"  ·  ?",answer:String(answer),options:choices(answer,others)};
+}
+function qRotate(d){
+  var arrows=["↑","→","↓","←"],seq=[],start=rnd(0,3),step=(d===1?1:d===2?3:1);
+  var x=start,i;seq.push(arrows[x]);
+  for(i=1;i<(d===3?4:4);i++){x=(x+(d===3?(i%2?1:2):step))%4;seq.push(arrows[x]);}
+  var nxt=(x+(d===3?2:step))%4;
+  return {type:"rotate",d:d,limit:24,prompt:"次に来る矢印は？",info:d===3?"回転する量にもパターンがあります。":"向きの変化を読み取ろう。",stim:seq.join("　")+"　?",answer:arrows[nxt],options:shuffle(arrows).map(function(v){return {val:v,label:v};})};
+}
+function qMemory(d){
+  var n=3+d,all=shuffle(["0","1","2","3","4","5","6","7","8","9"]),digits=all.slice(0,n),correct=digits.join(""),options=[correct],tries=0;
+  while(options.length<4&&tries<100){tries++;var altered=digits.slice(),i=rnd(0,n-1),j=rnd(0,n-1);if(i===j)j=(i+1)%n;var t=altered[i];altered[i]=altered[j];altered[j]=t;var str=altered.join("");if(!options.includes(str))options.push(str);}
+  return {type:"memory",d:d,limit:23+d*2,prompt:"光った数字の並びを覚えよう",info:"最初の約3秒だけ数字が表示されます。その後、同じ並びを選んでください。",stim:correct,answer:correct,options:shuffle(options).map(function(v){return {val:v,label:v};}),previewMs:2600+d*300};
+}
+function qLogic(d){
+  var count=d===3?5:4,labels=shuffle(["A","B","C","D","E"]).slice(0,count),facts=[];
+  for(var i=0;i<count-1;i++)facts.push(labels[i]+" > "+labels[i+1]);
+  facts=shuffle(facts);var max=rnd(0,1)===0;
+  return {type:"logic",d:d,limit:30,prompt:max?"一番大きいのはどれ？":"一番小さいのはどれ？",info:"記号間の大小関係から考えよう。「>」は左の方が大きい。",stim:facts.join("　／　"),answer:max?labels[0]:labels[labels.length-1],options:shuffle(labels).slice(0,4).map(function(v){return {val:v,label:v};})};
+}
+function qSearch(d){
+  var pairs=[["●","◉"],["◆","◇"],["▰","▱"],["▲","△"],["■","□"],["⬟","⬢"]],pair=pairs[rnd(0,pairs.length-1)],rev=rnd(0,1),common=pair[rev],odd=pair[1-rev],index=rnd(0,24),grid=Array(25).fill(common);grid[index]=odd;
+  return {type:"search",d:d,limit:d===1?20:d===2?18:16,prompt:"1つだけ違う記号はどれ？",info:"違う記号のマスをタップして「回答する」。",answer:String(index),grid:grid,options:null};
+}
+var factories={number:qNumber,rotate:qRotate,memory:qMemory,logic:qLogic,search:qSearch};
+function makeSchedule(){var out=[];for(var d=1;d<=3;d++)for(var t of shuffle(types))out.push(factories[t](d));return out;}
+function setChoices(items){var box=document.createElement("div");box.className="options";items.forEach(function(item,i){var b=document.createElement("button");b.type="button";b.className="option";b.dataset.val=item.val;b.setAttribute("aria-pressed","false");var label=document.createElement("span");label.textContent=item.label;b.append(label);var tiny=document.createElement("span");tiny.className="shortcut";tiny.textContent=(i+1)+" を押す";b.append(tiny);b.addEventListener("click",function(){choose(item.val);});box.append(b);});$("choicearea").append(box);}
+function setGrid(items){var box=document.createElement("div");box.className="searchgrid";box.setAttribute("role","group");box.setAttribute("aria-label","記号が25個。違う記号を選択");items.forEach(function(item,i){var b=document.createElement("button");b.type="button";b.className="search-cell";b.dataset.val=String(i);b.textContent=item;b.setAttribute("aria-label",(Math.floor(i/5)+1)+"行"+(i%5+1)+"列 "+item);b.setAttribute("aria-pressed","false");b.addEventListener("click",function(){choose(String(i));});box.append(b);});$("choicearea").append(box);}
+function choose(v){if(phase!=="answer")return;var now=waitMs();if(firstSelect===null)firstSelect=now;else if(selected!==null&&selected!==v)switches++;selected=v;lastChoice=now;var buttons=$("choicearea").querySelectorAll("button[data-val]");buttons.forEach(function(b){var checked=b.dataset.val===v;b.classList.toggle("selected",checked);b.setAttribute("aria-pressed",checked?"true":"false");});$("choiceinfo").textContent="選択中。変更してもOK。";$("confirm").disabled=false;}
+function beginQuestion(){
+  clearTimeout(transitionId);q=questions[at];selected=null;firstSelect=null;lastChoice=null;switches=0;phase=q.previewMs?"preview":"answer";startAt=performance.now();
+  $("counter").textContent="QUESTION "+String(at+1).padStart(2,"0")+" / "+questions.length;
+  $("phase").textContent="PHASE "+String(q.d).padStart(2,"0")+" / 03";
+  $("progress").style.width=(at/questions.length*100)+"%";
+  $("kind").textContent=codes[q.type];$("question").textContent=q.prompt;$("instruction").textContent=q.info;
+  $("stimulus").textContent=q.type==="search"?"✳  FIND THE ODD ONE":q.stim;
+  $("choicearea").replaceChildren();if(q.grid)setGrid(q.grid);else setChoices(q.options);
+  $("feedback").hidden=true;$("confirm").hidden=false;$("confirm").disabled=true;$("continue").hidden=true;
+  $("choiceinfo").textContent=q.previewMs?"数字を記憶してください。":"選択肢を選んでください。";
+  if(q.previewMs){$("choicearea").hidden=true;$("stimulus").classList.add("emphasis");}
+  else{$("choicearea").hidden=false;$("stimulus").classList.remove("emphasis");}
+  $("clock").classList.remove("urgent");$("timerbar").classList.remove("urgent");
+  updateClock();
+}
+function updateClock(){
+  if(phase==="idle"||phase==="feedback")return;
+  var elapsed=waitMs(),left=Math.max(0,q.limit-elapsed/1000),pct=Math.max(0,left/q.limit*100);
+  $("clock").textContent=left.toFixed(1)+"s";$("timerbar").style.width=pct+"%";
+  $("clock").classList.toggle("urgent",left<=6);$("timerbar").classList.toggle("urgent",left<=6);
+  if(phase==="preview"&&elapsed>=q.previewMs){
+    phase="answer";$("stimulus").textContent="● ● ●";$("stimulus").classList.remove("emphasis");
+    $("choicearea").hidden=false;$("choiceinfo").textContent="覚えた並びを選んでください。";
+  }
+  if(left<=0)submit(true);
+}
+function start(){
+  clearTimeout(transitionId);clearInterval(tickId);questions=makeSchedule();records=[];at=0;q=null;phase="idle";
+  $("startview").hidden=true;$("resultview").hidden=true;$("play").hidden=false;
+  window.scrollTo({top:0,behavior:"instant"});
+  beginQuestion();tickId=setInterval(updateClock,80);
+}
+function submit(timeout){
+  if(phase!=="answer"&&!(timeout&&phase==="preview"))return;
+  if(!timeout&&selected===null)return;
+  var time=Math.min(q.limit,Math.max(0,waitMs()/1000)),correct=!timeout&&selected===q.answer;
+  var after=firstSelect===null?0:Math.max(0,time-firstSelect/1000);
+  var penalty=Math.min(8,switches*2+Math.max(0,after-2)*.5);
+  var pts=correct?Math.max(0,Math.round(76+24*(1-time/q.limit)-penalty)):0;
+  records.push({type:q.type,d:q.d,correct:correct,timeout:timeout,time:time,limit:q.limit,first:firstSelect===null?null:firstSelect/1000,changes:switches,after:after,points:pts});
+  phase="feedback";$("confirm").hidden=true;$("continue").hidden=false;
+  $("continue").textContent=at===questions.length-1?"結果を見る ↗":"次の問題 →";
+  $("choicearea").querySelectorAll("button").forEach(function(b){b.disabled=true;});
+  $("feedback").hidden=false;$("feedback").classList.toggle("no",!correct);
+  var success=document.createElement("strong");success.textContent=correct?"✓ 正解！ +"+pts+" pt":timeout?"⌛ 時間切れ":"× 不正解";
+  $("feedback").replaceChildren(success,document.createTextNode("正解："+(q.type==="search"?(Math.floor(Number(q.answer)/5)+1)+"行"+(Number(q.answer)%5+1)+"列":q.answer)+"　｜　回答時間 "+time.toFixed(1)+" 秒"));
+  if(timeout){$("choiceinfo").textContent="時間切れ。";transitionId=setTimeout(nextQuestion,1600);}
+  else{$("choiceinfo").textContent=correct?"いい調子！":"次で取り戻そう。";}
+  $("clock").textContent=Math.max(0,q.limit-time).toFixed(1)+"s";
+}
+function nextQuestion(){if(phase!=="feedback")return;clearTimeout(transitionId);at++;if(at>=questions.length){finish();return;}beginQuestion();}
+function mean(a){return a.length?a.reduce(function(s,v){return s+v;},0)/a.length:0;}
+function finish(){
+  clearInterval(tickId);clearTimeout(transitionId);phase="idle";$("play").hidden=true;$("resultview").hidden=false;window.scrollTo({top:0,behavior:"instant"});
+  var correct=records.filter(function(r){return r.correct;}),responded=records.filter(function(r){return !r.timeout;}),timeouts=records.length-responded.length;
+  var total=records.reduce(function(s,r){return s+r.points;},0),gameScore=Math.round(total/records.length),iq=Math.round(65+gameScore*.78);
+  var avg=mean(responded.map(function(r){return r.time;})),avgRatio=mean(responded.map(function(r){return r.time/r.limit;}));
+  var firstAvg=mean(responded.filter(function(r){return r.first!==null;}).map(function(r){return r.first;}));
+  var changes=records.reduce(function(s,r){return s+r.changes;},0),late=records.filter(function(r){return r.time/r.limit>=.75;}).length;
+  var accuracy=correct.length/records.length;
+  var profile,title;
+  if(accuracy>=.8&&avgRatio<.56){title="高速・高精度型";profile="正解率とスピードを両立。問題の構造を素早くつかむ傾向が見られました。";}
+  else if(accuracy>=.73&&avgRatio>=.56){title="じっくり分析型";profile="時間を使って正解を積み重ねるタイプ。正確さを優先する判断が目立ちます。";}
+  else if(changes>=5){title="検証・再考型";profile="一度選んだ後に検討し直す場面が多め。見落としを減らそうとする傾向が見られます。";}
+  else if(avgRatio<.48&&accuracy<.67){title="直感スプリンター型";profile="素早く決断する一方、慎重に確認すると得点が伸びる余地があります。";}
+  else{title="バランス思考型";profile="速度と正確さのバランスを取りながら進めるタイプ。得意ジャンルを伸ばしてみよう。";}
+  $("iq").textContent=iq;$("profile").textContent=title;$("profilecopy").textContent=profile;
+  $("accuracy").textContent=Math.round(accuracy*100)+"%";$("avgtime").textContent=avg.toFixed(1)+"秒";$("resultscore").textContent=gameScore;
+  var bars=$("bars");bars.replaceChildren();types.forEach(function(type){var rows=records.filter(function(r){return r.type===type;}),pct=Math.round(100*rows.filter(function(r){return r.correct;}).length/rows.length);
+    var row=document.createElement("div");row.className="barrow";
+    var name=document.createElement("div");name.className="barname";name.textContent=names[type];
+    var bg=document.createElement("div");bg.className="barbg";var fill=document.createElement("div");fill.className="barfill";fill.style.width=pct+"%";bg.append(fill);
+    var val=document.createElement("div");val.className="barpct";val.textContent=pct+"%";row.append(name,bg,val);bars.append(row);
+  });
+  var behavior=$("behavior");behavior.replaceChildren();
+  [
+   "最初の選択まで：平均 "+firstAvg.toFixed(1)+" 秒",
+   "回答を選び直した回数：合計 "+changes+" 回",
+   "制限時間の75%以上使った問題："+late+" / "+records.length+" 問",
+   "時間切れ："+timeouts+" 問",
+   "全問題の合計回答時間："+Math.round(records.reduce(function(s,r){return s+r.time;},0))+" 秒"
+  ].forEach(function(txt){var div=document.createElement("div");div.textContent="・"+txt;behavior.append(div);});
+}
+$("start").addEventListener("click",start);$("retry").addEventListener("click",start);
+$("confirm").addEventListener("click",function(){submit(false);});$("continue").addEventListener("click",nextQuestion);
+document.addEventListener("keydown",function(e){
+  if($("play").hidden||e.altKey||e.ctrlKey||e.metaKey)return;
+  if(e.target&&/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
+  if(phase==="answer"&&q.type!=="search"&&/^[1-4]$/.test(e.key)){var b=$("choicearea").querySelectorAll("button[data-val]")[Number(e.key)-1];if(b){e.preventDefault();b.click();}}
+  else if(e.key==="Enter"&&e.target.tagName!=="BUTTON"){e.preventDefault();if(phase==="answer")submit(false);else if(phase==="feedback")nextQuestion();}
+});
+document.addEventListener("visibilitychange",function(){
+  if(document.hidden&&phase!=="idle"){clearInterval(tickId);}
+  else if(!document.hidden&&(phase==="answer"||phase==="preview")){updateClock();clearInterval(tickId);tickId=setInterval(updateClock,80);}
+});
+})();
+</script>
+</body>
+</html>
