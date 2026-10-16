@@ -146,7 +146,7 @@ var $=function(id){return document.getElementById(id);};
 var types=["number","rotate","memory","logic","search"];
 var names={number:"数列推理",rotate:"空間認識",memory:"短期記憶",logic:"論理推論",search:"視覚探索"};
 var codes={number:"01 / NUMBER",rotate:"02 / ROTATION",memory:"03 / MEMORY",logic:"04 / LOGIC",search:"05 / SEARCH"};
-var questions=[],at=0,records=[],q=null,selected=null,firstSelect=null,switches=0,startAt=0,phase="idle",tickId=null,transitionId=null,lastChoice=null;
+var questions=[],at=0,records=[],q=null,selected=null,firstSelect=null,switches=0,startAt=0,phase="idle",tickId=null,transitionId=null,lastChoice=null,hiddenAt=null;
 var shuffle=function(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),v=a[i];a[i]=a[j];a[j]=v;}return a;};
 var rnd=function(min,max){return min+Math.floor(Math.random()*(max-min+1));};
 var waitMs=function(){return performance.now()-startAt;};
@@ -181,7 +181,7 @@ function qLogic(d){
   var count=d===3?5:4,labels=shuffle(["A","B","C","D","E"]).slice(0,count),facts=[];
   for(var i=0;i<count-1;i++)facts.push(labels[i]+" > "+labels[i+1]);
   facts=shuffle(facts);var max=rnd(0,1)===0;
-  return {type:"logic",d:d,limit:30,prompt:max?"一番大きいのはどれ？":"一番小さいのはどれ？",info:"記号間の大小関係から考えよう。「>」は左の方が大きい。",stim:facts.join("　／　"),answer:max?labels[0]:labels[labels.length-1],options:shuffle(labels).slice(0,4).map(function(v){return {val:v,label:v};})};
+  return {type:"logic",d:d,limit:30,prompt:max?"一番大きいのはどれ？":"一番小さいのはどれ？",info:"記号間の大小関係から考えよう。「>」は左の方が大きい。",stim:facts.join("　／　"),answer:max?labels[0]:labels[labels.length-1],options:shuffle(labels).map(function(v){return {val:v,label:v};})};
 }
 function qSearch(d){
   var pairs=[["●","◉"],["◆","◇"],["▰","▱"],["▲","△"],["■","□"],["⬟","⬢"]],pair=pairs[rnd(0,pairs.length-1)],rev=rnd(0,1),common=pair[rev],odd=pair[1-rev],index=rnd(0,24),grid=Array(25).fill(common);grid[index]=odd;
@@ -219,7 +219,7 @@ function updateClock(){
   if(left<=0)submit(true);
 }
 function start(){
-  clearTimeout(transitionId);clearInterval(tickId);questions=makeSchedule();records=[];at=0;q=null;phase="idle";
+  clearTimeout(transitionId);clearInterval(tickId);questions=makeSchedule();records=[];at=0;q=null;phase="idle";hiddenAt=null;
   $("startview").hidden=true;$("resultview").hidden=true;$("play").hidden=false;
   window.scrollTo({top:0,behavior:"instant"});
   beginQuestion();tickId=setInterval(updateClock,80);
@@ -280,12 +280,12 @@ $("confirm").addEventListener("click",function(){submit(false);});$("continue").
 document.addEventListener("keydown",function(e){
   if($("play").hidden||e.altKey||e.ctrlKey||e.metaKey)return;
   if(e.target&&/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
-  if(phase==="answer"&&q.type!=="search"&&/^[1-4]$/.test(e.key)){var b=$("choicearea").querySelectorAll("button[data-val]")[Number(e.key)-1];if(b){e.preventDefault();b.click();}}
+  if(phase==="answer"&&q.type!=="search"&&/^[1-5]$/.test(e.key)){var b=$("choicearea").querySelectorAll("button[data-val]")[Number(e.key)-1];if(b){e.preventDefault();b.click();}}
   else if(e.key==="Enter"&&e.target.tagName!=="BUTTON"){e.preventDefault();if(phase==="answer")submit(false);else if(phase==="feedback")nextQuestion();}
 });
 document.addEventListener("visibilitychange",function(){
-  if(document.hidden&&phase!=="idle"){clearInterval(tickId);}
-  else if(!document.hidden&&(phase==="answer"||phase==="preview")){updateClock();clearInterval(tickId);tickId=setInterval(updateClock,80);}
+  if(document.hidden&&phase!=="idle"){hiddenAt=performance.now();clearInterval(tickId);}
+  else if(!document.hidden&&(phase==="answer"||phase==="preview")){if(hiddenAt!==null){startAt+=performance.now()-hiddenAt;hiddenAt=null;}updateClock();clearInterval(tickId);tickId=setInterval(updateClock,80);}
 });
 })();
 </script>
