@@ -221,7 +221,7 @@ function updateClock(){
 function start(){
   clearTimeout(transitionId);clearInterval(tickId);questions=makeSchedule();records=[];at=0;q=null;phase="idle";hiddenAt=null;
   $("startview").hidden=true;$("resultview").hidden=true;$("play").hidden=false;
-  window.scrollTo({top:0,behavior:"instant"});
+  window.scrollTo(0,0);
   beginQuestion();tickId=setInterval(updateClock,80);
 }
 function submit(timeout){
@@ -245,7 +245,7 @@ function submit(timeout){
 function nextQuestion(){if(phase!=="feedback")return;clearTimeout(transitionId);at++;if(at>=questions.length){finish();return;}beginQuestion();}
 function mean(a){return a.length?a.reduce(function(s,v){return s+v;},0)/a.length:0;}
 function finish(){
-  clearInterval(tickId);clearTimeout(transitionId);phase="idle";$("play").hidden=true;$("resultview").hidden=false;window.scrollTo({top:0,behavior:"instant"});
+  clearInterval(tickId);clearTimeout(transitionId);phase="idle";$("play").hidden=true;$("resultview").hidden=false;window.scrollTo(0,0);
   var correct=records.filter(function(r){return r.correct;}),responded=records.filter(function(r){return !r.timeout;}),timeouts=records.length-responded.length;
   var total=records.reduce(function(s,r){return s+r.points;},0),gameScore=Math.round(total/records.length),iq=Math.round(65+gameScore*.78);
   var avg=mean(responded.map(function(r){return r.time;})),avgRatio=mean(responded.map(function(r){return r.time/r.limit;}));
